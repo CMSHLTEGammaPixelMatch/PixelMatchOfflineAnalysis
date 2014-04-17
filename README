@@ -1,0 +1,11 @@
+This library is used to perform the pixel match study and automatically produces all the plots and LaTeX snippets needed for the note.  To produce all these plots and snippets run "python pixel.py".  This expects additional directories with the following structure:
+
+../output/CRAB/
+../note/snippets
+../plots/eff_rej
+../plots/effs
+../plots/et
+../plots/vars
+
+Samples can be trivially added in the sample module, located in modue_sample.py .
+
