@@ -19,6 +19,14 @@ class region_object:
         self.TLatex2.SetTextSize(0.05)
         self.TLatex2.SetNDC()
         
+        self.TLatex2_ep = ROOT.TLatex(0.6, 0.77, 'positrons')
+        self.TLatex2_ep.SetTextSize(0.05)
+        self.TLatex2_ep.SetNDC()
+        
+        self.TLatex2_em = ROOT.TLatex(0.6, 0.77, 'electrons')
+        self.TLatex2_em.SetTextSize(0.05)
+        self.TLatex2_em.SetNDC()
+        
         self.TLatex1_eff_rej = ROOT.TLatex(0.6, 0.27, name)
         self.TLatex1_eff_rej.SetTextSize(0.05)
         self.TLatex1_eff_rej.SetNDC()
@@ -26,9 +34,14 @@ class region_object:
         self.TLatex2_eff_rej.SetTextSize(0.05)
         self.TLatex2_eff_rej.SetNDC()
         
-    def draw_label(self):
+    def draw_label(self, cname):
         self.TLatex1.Draw()
-        self.TLatex2.Draw()
+        if cname=='ep':
+            self.TLatex2_ep.Draw()
+        elif cname=='em':
+            self.TLatex2_em.Draw()
+        else:
+            self.TLatex2.Draw()
     def draw_label_eff_rej(self):
         self.TLatex1_eff_rej.Draw()
         self.TLatex2_eff_rej.Draw()
@@ -71,7 +84,7 @@ class variable_object:
         
         self.hBase = ROOT.TH1F('hBase_%s'%self.name, '', self.nBins, self.lower, self.upper)
         self.hBase.GetXaxis().SetTitle(self.ROOT_title)
-        self.hBase.GetYaxis().SetTitle('superclusters [normalised]')
+        self.hBase.GetYaxis().SetTitle('number of superclusters [normalised]')
         
         self.binWidth_eff = self.upper/(self.nBins_eff)
         self.lower_eff =       0.5*self.binWidth_eff

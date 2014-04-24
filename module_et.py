@@ -117,7 +117,7 @@ class et_plot_wrapper:
         self.h_pt_pass.Draw('pe:sames')
         self.h_pt_all.Draw('pe:sames')
         
-        regions[self.rname].draw_label()
+        regions[self.rname].draw_label('ea')
         legend.Draw()
         self.sample.trigger.TLatex.Draw()
         

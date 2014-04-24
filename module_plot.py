@@ -58,7 +58,7 @@ def plot_multiple_histograms(histos, legend, bname, tname, rname, vname, cname, 
     best_h.Draw('axis:sames')
     legend.Draw()
     triggers[tname].TLatex.Draw()
-    regions[rname] .draw_label()
+    regions[rname] .draw_label(cname)
     beams[bname]   .TLatex.Draw()
     CMS_label.Draw()
     

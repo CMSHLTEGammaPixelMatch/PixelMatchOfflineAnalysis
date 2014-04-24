@@ -88,11 +88,11 @@ class task_wrapper:
                 if 'PixelMatchFilterAnalysis' in l:
                     pass
                 elif 'PixelMatchFilterS' in l:
-                    self.timings['PixelMatchFilterS'       ]['perEvent'      ].values.append(1e3*float(words[1]))
-                    self.timings['PixelMatchFilterS'       ]['perModuleRun'  ].values.append(1e3*float(words[3]))
+                    self.timings['PixelMatchFilterS']['perEvent'    ].values.append(1e3*float(words[1]))
+                    self.timings['PixelMatchFilterS']['perModuleRun'].values.append(1e3*float(words[3]))
                 elif 'PixelMatchFilter' in l:
-                    self.timings['PixelMatchFilter'        ]['perEvent'      ].values.append(1e3*float(words[1]))
-                    self.timings['PixelMatchFilter'        ]['perModuleRun'  ].values.append(1e3*float(words[3]))
+                    self.timings['PixelMatchFilter' ]['perEvent'    ].values.append(1e3*float(words[1]))
+                    self.timings['PixelMatchFilter' ]['perModuleRun'].values.append(1e3*float(words[3]))
     def find_parameters(self, print_out):
         for m in self.timings:
             for t in self.timings[m]:
@@ -165,7 +165,6 @@ for tname in task_names:
         min = t.min
     if t.max > max:
         max = t.max
-#print min , max
         
 hBase = {}
 nBins =   20
@@ -249,7 +248,7 @@ for task in task_names:
             t.timings[mname][type].histogram.Draw('pe:sames')
             legend.Draw()
             for trigger in trigger_names:
-                if trigger in tname:
+                if trigger in task:
                     trigger_tlatex[trigger].Draw()
             for sname in sample_labels:
                 if sname in task:
@@ -263,8 +262,6 @@ for task in task_names:
             string = '%3d:  '%bin
             for mname in module_names:
                 string = '%s  %8.4g  '%(string, t.timings[mname][type].histogram.GetBinContent(bin))
-            #print string
-        #print
             
 t_27   = tasks['ttbar_13TeV_25ns_trigger_27'  ]
 t_18_7 = tasks['ttbar_13TeV_25ns_trigger_18_7']
@@ -313,6 +310,3 @@ lines.append('  \\end{center}')
 lines.append('\\end{table}')
 
 print '\n'.join(lines)
-
-
-
