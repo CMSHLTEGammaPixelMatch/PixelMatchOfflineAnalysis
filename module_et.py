@@ -143,7 +143,7 @@ def et_latex(epws, rname):
     image_counter = 0
     t1 = triggers[trigger_names[0]]
     t2 = triggers[trigger_names[1]]
-    caption = 'The $E_T$ spectra of %s electrons passing a $\\varepsilon_{sig}=50\\%%$ $s$ selection at $8 \\tev 50 \\ns$ (top) and $13 \\tev 25 \\ns$ (bottom) for events firing the %s trigger (left) and the %s trigger (right).  The sability of the selections can be seen in the ratio plots.'%(regions[rname].name.lower(),  t1.short_latex,  t2.short_latex)
+    caption = 'The $E_T$ spectra of %s electrons passing a $\\varepsilon_{sig}=50\\%%$ $s$ selection at $8 \\tev 50 \\ns$ (top) and $13 \\tev 25 \\ns$ (bottom) for events firing the %s trigger (left) and the %s trigger (right) for $Z\to ee$ samples.  The stability of the selections can be seen in the ratio plots.'%(regions[rname].name.lower(),  t1.short_latex,  t2.short_latex)
     for bname in beam_names:
         for tname in trigger_names:
             ename = 'Zee_%s_%s_%s'%(bname, tname, rname)

@@ -10,14 +10,15 @@ import numpy
 ##########################################################################################
 # Other modules                                                                          #
 ##########################################################################################
-from module_latex   import latex_var_table, latex_multieff, latex_var_table_by_charge, latex_var_table_by_trigger
+from module_latex   import latex_var_table, latex_multieff, latex_var_table_by_beforeAfter, latex_var_table_by_charge, latex_var_table_by_trigger
 from module_sample  import beam_names, beams, trigger_names, triggers, all_samples
 from module_vars    import var_names, variables, region_names, regions
 from module_eff_rej import eff_rej_curve, make_large_latex_table
 from module_window  import small_window
 from module_et      import et_plot_wrapper, et_latex
 
-print_pngs = False
+print_pngs = True
+print_epss = True
 
 ##########################################################################################
 # ROOT and style                                                                         #
@@ -63,8 +64,16 @@ histograms_eff_s = {}
 histograms_var   = {}
 graphs_eff       = {}
 
+scut = {} 
+scut[trigger_names[0]] = {'B':0.34,'I':0.38,'F':0.29}
+scut[trigger_names[1]] = {'B':0.32,'I':0.39,'F':0.32}
+
 for s in all_samples.samples:
+    print s.name
     s.make_events(small_window)
+
+for s in all_samples.samples:
+    print s.name
     for rname in region_names:
         for vname in var_names:
             var = variables[vname]
@@ -72,13 +81,14 @@ for s in all_samples.samples:
             if h_var:
                 for h in h_var:
                     histograms_var[h.GetName()] = h
-        s.fill_var_histograms(rname)
+        s.fill_var_histograms(rname, scut)
         for vname in var_names:
             var = variables[vname]
             h_eff = s.make_eff_histogram(var, rname)
             if h_eff:
                 for h in h_eff:
                     histograms_eff[h.GetName()] = h
+    s.make_2D_eff_histograms()
 
 ##########################################################################################
 # Get means of signal parameters for s variables                                         #
@@ -112,10 +122,47 @@ if print_pngs:
         print_name = '../plots/vars/%s.png'%hName
         histograms_var[hName].Draw('pe')
         canvas.Print(print_name)
+    
+    for s in all_samples.samples:
+        for hName_2D in s.histograms_2D:
+            canvas.Clear()
+            print_name = '../plots/vars/%s.png'%hName_2D
+            s.histograms_2D[hName_2D][0].Draw('colz')
+            canvas.Print(print_name)
+        for hName_2Deff in s.histograms_2Deff:
+            canvas.Clear()
+            print_name = '../plots/vars/%s.png'%hName_2Deff
+            s.histograms_2Deff[hName_2Deff][0].Draw('colz')
+            canvas.Print(print_name)
 
     for hName in histograms_eff:
         canvas.Clear()
         print_name = '../plots/effs/%s.png'%hName
+        histograms_eff[hName].Draw('pe')
+        canvas.Print(print_name)
+
+if print_epss:
+    for hName in histograms_var:
+        canvas.Clear()
+        print_name = '../plots/vars/%s.eps'%hName
+        histograms_var[hName].Draw('pe')
+        canvas.Print(print_name)
+    
+    for s in all_samples.samples:
+        for hName_2D in s.histograms_2D:
+            canvas.Clear()
+            print_name = '../plots/vars/%s.eps'%hName_2D
+            s.histograms_2D[hName_2D][0].Draw('colz')
+            canvas.Print(print_name)
+        for hName_2Deff in s.histograms_2Deff:
+            canvas.Clear()
+            print_name = '../plots/vars/%s.eps'%hName_2Deff
+            s.histograms_2Deff[hName_2Deff][0].Draw('colz')
+            canvas.Print(print_name)
+
+    for hName in histograms_eff:
+        canvas.Clear()
+        print_name = '../plots/effs/%s.eps'%hName
         histograms_eff[hName].Draw('pe')
         canvas.Print(print_name)
 
@@ -161,6 +208,13 @@ for cname in ['ep','em','ea']:
     for v in var_groups:
         snippets.append(latex_var_table(v[4], v[0], v[2], cname, 'var', histograms_var, objects_to_save))
     file = open('../note/snippets/vars_plots_%s.tex'%cname,'w')
+    file.write('\n\n'.join(snippets))
+
+for cname in ['ep','em','ea']:
+    snippets = []
+    for v in var_groups:
+        snippets.append(latex_var_table_by_beforeAfter(v[4], v[0], v[2], cname, 'var', histograms_var, objects_to_save))
+    file = open('../note/snippets/vars_plots_%s_beforeAfter.tex'%cname,'w')
     file.write('\n\n'.join(snippets))
 
 # Main variable plots by charge

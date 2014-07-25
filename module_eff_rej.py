@@ -150,9 +150,9 @@ def make_large_latex_table(bname, type, curves, vnames, v_summary, v_caption, v_
             for i in range(0,len(target_values)):
                 cut = c.sig_eff_targets[i].cut if type=='sig' else c.bkg_eff_targets[i].cut
                 if v_power!=0:
-                    str = '%s & $<%.1f$'%(str, cut*pow(10,v_power))
+                    str = '%s & $<%.2f$'%(str, cut*pow(10,v_power))
                 else:
-                    str = '%s & $<%.1g$'%(str, cut)
+                    str = '%s & $<%.2g$'%(str, cut)
         if v_power!=0:
             str = '      $|%s|\\times 10^{%d}$ %s \\\\'%(var.latex, v_power, str)
         else:

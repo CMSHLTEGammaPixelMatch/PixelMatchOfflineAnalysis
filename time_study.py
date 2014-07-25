@@ -196,33 +196,28 @@ for mname in module_names:
 file.Write()
 
 # Stuff for making labels
-sample_names = [ 'QCD_Pt_30_80_13TeV_25ns' , 'QCD_Pt_30_80_8TeV_50ns' , 'DoubleElectron' , 'Zee_8TeV_50ns' , 'Zee_13TeV_25ns' , 'ttbar_13TeV_25ns' ]
+sample_names = [ 'QCD_Pt_30_80_13TeV_25ns' , 'QCD_Pt_30_80_8TeV_50ns' , 'DoubleElectron' , 'Zee_8TeV_50ns' , 'Zee_8TeV_25ns' , 'Zee_13TeV_25ns' , 'ttbar_13TeV_25ns' ]
 sample_labels = {}
 sample_labels['QCD_Pt_30_80_13TeV_25ns'] = ROOT.TLatex(0.2, 0.82, 'QCD P_{T}[30,80] 13 TeV 25 ns' )
 sample_labels['QCD_Pt_30_80_8TeV_50ns' ] = ROOT.TLatex(0.2, 0.82, 'QCD P_{T}[30,80] 8 TeV 50 ns'  )
 sample_labels['DoubleElectron'         ] = ROOT.TLatex(0.2, 0.82, 'DoubleElectron 8TeV 50ns'      )
 sample_labels['Zee_8TeV_50ns'          ] = ROOT.TLatex(0.2, 0.82, 'Z#rightarrowee 8 TeV 50 ns'    )
+sample_labels['Zee_8TeV_25ns'          ] = ROOT.TLatex(0.2, 0.82, 'Z#rightarrowee 8 TeV 25 ns'    )
 sample_labels['Zee_13TeV_25ns'         ] = ROOT.TLatex(0.2, 0.82, 'Z#rightarrowee 13 TeV 25 ns'   )
 sample_labels['ttbar_13TeV_25ns'       ] = ROOT.TLatex(0.2, 0.82, 't#bar{t} 13 TeV 25 ns'         )
 for sname in sample_labels:
     l = sample_labels[sname]
     l.SetNDC()
 
+
 sample_titles = {}
 sample_titles['QCD_Pt_30_80_13TeV_25ns'] = 'QCD P_{T}[30,80] 13 TeV 25 ns'
 sample_titles['QCD_Pt_30_80_8TeV_50ns' ] = 'QCD P_{T}[30,80] 8 TeV 50 ns'
 sample_titles['DoubleElectron'         ] = 'DoubleElectron 8TeV 50ns'
 sample_titles['Zee_8TeV_50ns'          ] = 'Z\\to ee 8 TeV 50 ns'
+sample_titles['Zee_8TeV_25ns'          ] = 'Z\\to ee 8 TeV 25 ns'
 sample_titles['Zee_13TeV_25ns'         ] = 'Z\\to ee 13 TeV 25 ns'
 sample_titles['ttbar_13TeV_25ns'       ] = 't\\bar{t} 13 TeV 25 ns'
-
-sample_latex = {}
-sample_latex['QCD_Pt_30_80_13TeV_25ns'] = '\\mathrm{QCD}\\ P_{T}[30,80] 13 \\tev 25 \\ns'
-sample_latex['QCD_Pt_30_80_8TeV_50ns' ] = '\\mathrm{QCD}\\ P_{T}[30,80] 8  \\tev 50 \\ns'
-sample_latex['DoubleElectron'         ] = '\\mathrm{DoubleElectron}\\ 8\\tev 50\\ns'
-sample_latex['Zee_8TeV_50ns'          ] = 'Z\\to ee \\ 8\\tev  50\\ns'
-sample_latex['Zee_13TeV_25ns'         ] = 'Z\\to ee \\ 13\\tev 25\\ns'
-sample_latex['ttbar_13TeV_25ns'       ] = 't\\bar{t}\\ 13\\tev 25\\ns'
 
 trigger_names  = [ 'trigger_27' , 'trigger_18_7' ]
 trigger_titles = {}
@@ -270,46 +265,46 @@ for task in task_names:
             
 t_27   = tasks['ttbar_13TeV_25ns_trigger_27'  ]
 t_18_7 = tasks['ttbar_13TeV_25ns_trigger_18_7']
-#t_27   = tasks['DoubleElectron_trigger_27'    ]
-#t_18_7 = tasks['DoubleElectron_trigger_18_7'  ]
+t_27   = tasks['DoubleElectron_trigger_27'    ]
+t_18_7 = tasks['DoubleElectron_trigger_18_7'  ]
 for type in type_names:
     for mname in module_names:
         print '%20s  %20s  %8.4g  %8.4g'%(mname , type , t_27.timings[mname][type].mean , math.sqrt(t_27.timings[mname][type].var))
 
-#sys.exit()
+sys.exit()
 # Write summary table
 lines = []
-lines.append('\\begin{table}[!hbt]')
+lines.append('\\begin{table}')
 lines.append('  \\begin{center}')
-lines.append('    \\begin{tabular}{c|ccc}')
+lines.append('    \\begin{tabular}{c|ccc|ccc}')
 lines.append('      \\hline')
-lines.append('      Sample name & Timing without $s^2$ ($\\mathrm{ms}$)        & Timing with $s^2$ ($\\mathrm{ms}$)           & $n_{jobs}$ \\\\')
+lines.append('      Sample name & \\multicolumn{3}{c}{Single electron trigger} & \\multicolumn{3}{c}{Double electron trigger} \\\\')
+lines.append('                  & Timing without $s^2$ ($\\mathrm{ms}$) & Timing with $s^2$ ($\\mathrm{ms}$) & $n_{jobs}$ & Timing without $s^2$ ($\\mathrm{ms}$) & Timing with $s^2$ ($\\mathrm{ms}$)  & $n_{jobs}$ \\\\')
 lines.append('      \\hline')
-lines.append('                  & \\multicolumn{3}{c}{Single electron trigger} \\\\')
 
 for sname in sample_names:
     t_27   = tasks['%s_trigger_27'  %sname]
-    mean_without_27    =           t_27.timings['PixelMatchFilter' ]['perModuleRun'].mean
-    sigma_without_27   = math.sqrt(t_27.timings['PixelMatchFilter' ]['perModuleRun'].var )
-    mean_with_27       =           t_27.timings['PixelMatchFilterS']['perModuleRun'].mean
-    sigma_with_27      = math.sqrt(t_27.timings['PixelMatchFilterS']['perModuleRun'].var )
-    n_27 = t_27.nJobs
-    lines.append( '      $%40s$ & $%8.4g \\pm %8.4g$ & $%8.4g \\pm %8.4g$ & $%d$ \\\\' %(sample_latex[sname], mean_without_27, sigma_without_27, mean_with_27, sigma_with_27, n_27) )
-
-lines.append('      \\hline')
-lines.append('     & \\multicolumn{3}{c}{Double electron trigger} \\\\')
-for sname in sample_names:
     t_18_7 = tasks['%s_trigger_18_7'%sname]
-    mean_without_18_7  =           t_18_7.timings['PixelMatchFilter' ]['perModuleRun'].mean
-    sigma_without_18_7 = math.sqrt(t_18_7.timings['PixelMatchFilter' ]['perModuleRun'].var )
-    mean_with_18_7     =           t_18_7.timings['PixelMatchFilterS']['perModuleRun'].mean
-    sigma_with_18_7    = math.sqrt(t_18_7.timings['PixelMatchFilterS']['perModuleRun'].var )
+    
+    mean_without_27    =           t_27.timings['PixelMatchFilter' ]['perEvent'].mean
+    sigma_without_27   = math.sqrt(t_27.timings['PixelMatchFilter' ]['perEvent'].var )
+    mean_with_27       =           t_27.timings['PixelMatchFilterS']['perEvent'].mean
+    sigma_with_27      = math.sqrt(t_27.timings['PixelMatchFilterS']['perEvent'].var )
+    n_27 = t_27.nJobs
+        
+    mean_without_18_7  =           t_18_7.timings['PixelMatchFilter' ]['perEvent'].mean
+    sigma_without_18_7 = math.sqrt(t_18_7.timings['PixelMatchFilter' ]['perEvent'].var )
+    mean_with_18_7     =           t_18_7.timings['PixelMatchFilterS']['perEvent'].mean
+    sigma_with_18_7    = math.sqrt(t_18_7.timings['PixelMatchFilterS']['perEvent'].var )
     n_18_7 = t_18_7.nJobs
-    lines.append( '      $%40s$ & $%8.4g \\pm %8.4g$ & $%8.4g \\pm %8.4g$ & $%d$ \\\\' %(sample_latex[sname], mean_without_18_7, sigma_without_18_7, mean_with_18_7, sigma_with_18_7, n_18_7) )
+    
+    sample_title = sample_titles[sname]
+    
+    lines.append( '      $%40s$ & $%8.4g \\pm %8.4g$ & $%8.4g \\pm %8.4g$ & $%d$ & $%8.4g \\pm %8.4g$ & $%8.4g \\pm %8.4g$ & $%d$ \\\\' %(sample_titles[sname], mean_without_27, sigma_without_27, mean_with_27, sigma_with_27, n_27, mean_without_18_7, sigma_without_18_7, mean_with_18_7, sigma_with_18_7, n_18_7) )
 
 lines.append('      \\hline')
 lines.append('    \\end{tabular}')
-lines.append('  \\caption{Timing information (per module run) for the various samples with and without the calculation of $s^2$, for the single and double electron triggers.}')
+lines.append('  \\caption{Timing information (per event) for the variious samples with and without the calculation of $s^2$, for the single and double electron triggers.}')
 lines.append('  \\label{tab:timing}')
 lines.append('  \\end{center}')
 lines.append('\\end{table}')

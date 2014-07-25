@@ -116,7 +116,9 @@ class sample_object:
             self.phi2[rname] = []
             self.rz2[rname]  = []
             self.n_el[rname] = 0
-        self.histograms = {}
+        self.histograms    = {}
+        self.histograms_2D = {}
+        self.histograms_2Deff = {}
         
     def set_style(self, h):
         self.process.set_style(h)
@@ -130,7 +132,8 @@ class sample_object:
     
     def make_events(self, tag_window):
         tree = self.var_ttree
-        nEvents = min(1000000000,tree.GetEntries())
+        nEvents = min(1000000000000,tree.GetEntries())
+        #nEvents = min(1000,tree.GetEntries())
         
         self.n_el_0 = 0
         self.n_el_1 = 0
@@ -245,17 +248,48 @@ class sample_object:
         if var.region!='A' and var.region!=region:
             return False
         for cname in ['ep','em','ea']:
-            hName = 'h_var_%s_%s_%s_%s'%(var.name, self.name, region, cname)
-            h = var.hBase.Clone(hName)
-            h.Sumw2()
-            self.set_style(h)
-        
-            if var.region=='A' or var.region==region:
-                self.histograms[hName] = [h, var]
-            histos.append(h)
+            for beforeAfter_name in ['','_after']:
+                hName = 'h_var_%s_%s_%s_%s%s'%(var.name, self.name, region, cname, beforeAfter_name)
+                h = var.hBase.Clone(hName)
+                h.Sumw2()
+                self.set_style(h)
+                if var.region=='A' or var.region==region:
+                    self.histograms[hName] = [h, var]
+                histos.append(h)
+                
+                hName_2D = 'h2D_var_%s_%s_%s_%s%s'%(var.name, self.name, region, cname, beforeAfter_name)
+                nBinsX = h.GetNbinsX()
+                lowerX = h.GetXaxis().GetXmin()
+                upperX = h.GetXaxis().GetXmax()
+                if var.name=='phi1':
+                    lowerX = -0.04
+                    upperX =  0.04
+                if var.name=='phi2':
+                    lowerX = -0.002
+                    upperX =  0.002
+                if var.name=='z2B':
+                    lowerX = -0.06
+                    upperX =  0.06
+                if var.name=='r2I':
+                    lowerX = -0.05
+                    upperX =  0.05
+                if var.name=='r2F':
+                    lowerX = -0.05
+                    upperX =  0.05
+                nBinsY =  20
+                lowerY =   0
+                upperY = 120
+                h2D = ROOT.TH2F(hName_2D, '', nBinsX, lowerX, upperX, nBinsY, lowerY, upperY)
+                h2D.GetXaxis().SetTitle(h.GetXaxis().GetTitle())
+                h2D.GetYaxis().SetTitle('E_{T}(e) [GeV]')
+                h2D.Sumw2()
+                self.set_style(h2D)
+                if var.region=='A' or var.region==region:
+                    self.histograms_2D[hName_2D] = [h2D, var]
+                
         return histos
     
-    def fill_var_histograms(self, region):
+    def fill_var_histograms(self, region, scut):
         counter = 0
         for ev in self.events:
             counter = counter + 1
@@ -279,14 +313,78 @@ class sample_object:
                             continue
                         if q<0 and '_em' not in hName and '_ea' not in hName:
                             continue
+                        if 'after' in hName and helix.s_ > scut[self.trigger.name][region]:
+                                continue
                         h_wrapper = self.histograms[hName]
                         h_wrapper[0].Fill(h_wrapper[1].get_helix_value(best_helix))
+                        
+                    for hName_2D in self.histograms_2D:
+                        if best_helix.region not in hName_2D:
+                            continue
+                        q = best_helix.charge
+                        if q>0 and '_ep' not in hName_2D and '_ea' not in hName_2D:
+                            continue
+                        if q<0 and '_em' not in hName_2D and '_ea' not in hName_2D:
+                            continue
+                        if 'after' in hName and helix.s_ > scut[self.trigger.name][region]:
+                                continue
+                        h2D_wrapper = self.histograms_2D[hName_2D]
+                        h2D_wrapper[0].Fill(h2D_wrapper[1].get_helix_value(best_helix), el.p4.Pt())
+    
+    def make_2D_eff_histograms(self):
+        for hName_2D in self.histograms_2D:
+            h = self.histograms_2D[hName_2D][0]
+            hName_2Deff = 'heff_%s'%hName_2D[1:]
+            h_eff = h.Clone(hName_2Deff)
+            for biny in range(1,h_eff.GetNbinsY()+1):
+                for binx in range(1,h_eff.GetNbinsX()+1):
+                    h_eff.SetBinContent(binx, biny, 0)
+            
+            debug_ = False
+            if 'DoubleElectron' in hName_2D and '_ea' in hName_2D and 'phi1' in hName_2D and 'beam_8_50' in hName_2D and 'trigger_17_8' in hName_2D:
+                debug_ = True
+            debug_ = False
+                
+            grand_total = 0
+            for biny in range(1,h.GetNbinsY()+1):
+                for binx in range(1,h.GetNbinsX()+1):
+                    grand_total = grand_total + h.GetBinContent(binx, biny)
+                
+            for biny in range(1,h.GetNbinsY()+1):
+                # Get the total for that row in the histogram
+                total = 0
+                for binx in range(1,h.GetNbinsX()+1):
+                    total = total + h.GetBinContent(binx, biny)
+                
+                for binx in range(1,1+h.GetNbinsX()/2):
+                    n = 0
+                    for bintmp in range(binx,h.GetNbinsX()+2-binx):
+                        n = n + h.GetBinContent(bintmp, biny)
+                    eff = 0
+                    if total>0:
+                        eff = n/total
+                    h_eff.SetBinContent(binx,biny,eff)
+                    if debug_:
+                        print '%4d %4d %8f %5d'%(binx , biny , eff , total)
+            
+            for binx in range(1+h.GetNbinsX()/2,h.GetNbinsX()+1):
+                total = 0
+                for biny in range(1,h.GetNbinsY()+1):
+                    for bintmp in range(h.GetNbinsX()+1-binx,binx+1):
+                        total = total + h.GetBinContent(bintmp, biny)
+                eff = total/grand_total
+                for biny in range(1,h.GetNbinsY()+1):
+                    h_eff.SetBinContent(binx,biny,eff)
+                    if debug_:
+                        print '%4d %4d %8f'%(binx , biny , eff)
+                
+            self.histograms_2Deff[hName_2Deff] = [h_eff,self.histograms_2D[hName_2D][1]]
+        
     
     def make_eff_histogram(self, var, region):
         histos = []
         for cname in ['ep','em','ea']:
             hName = 'h_eff_%s_%s_%s_%s'%(var.name, self.name, region, cname)
-            print hName
             h = var.hBase_eff.Clone(hName)
             if var.region!='A' and var.region!=region:
                 return histos

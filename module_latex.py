@@ -31,11 +31,46 @@ def latex_var_table(vlatex, vnames, vtype, cname, type, histograms_in, objects_t
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
     lines.append('  \\label{fig:%s_%s_%s}'%(type, vtype, cname))
+    lines.append('  \\end{center}')
+    lines.append('\\end{figure}')
+    lines.append('\\clearpage')
+    return '\n'.join(lines)
+
+def latex_var_table_by_beforeAfter(vlatex, vnames, vtype, cname, type, histograms_in, objects_to_save):
+    lines = []
+    lines.append('\\begin{figure}[!bht]')
+    lines.append('  \\begin{center}')
+    lines.append('    \\begin{tabular}{cc}')
+    image_counter = 0
+    
+    tname = trigger_names[0]
+    caption = caption_var_by_beforeAfter(vlatex, tname)
+    
+    for rname in region_names:
+        for bname in beam_names:
+            print
+            histograms = []
+            for s in all_samples.samples:
+                sname = s.name
+                if bname in sname and tname in sname:
+                    aname = '_after'
+                    hname = 'h_%s_%s_%s_%s_%s%s'%(type, vnames[rname], sname, rname, cname, aname)
+                    print hname
+                    histograms.append(histograms_in[hname])
+            image_counter = image_counter+1
+            suffix = '&' if image_counter%2==1 else '\\\\'
+            legend = make_legend(0.1,0.85,0.55,0.7)
+            fill_legend(legend, [bname,tname])
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '_after', type, objects_to_save)
+            lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
+    lines.append('    \\end{tabular}')
+    lines.append('  \\caption{%s}'%caption)
+    lines.append('  \\label{fig:%s_%s_%s_after}'%(type, vtype, cname))
     lines.append('  \\end{center}')
     lines.append('\\end{figure}')
     lines.append('\\clearpage')
@@ -65,7 +100,7 @@ def latex_var_table_by_charge(vlatex, vnames, vtype, bname, type, histograms_in,
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
@@ -99,7 +134,7 @@ def latex_var_table_by_trigger(vlatex, vnames, vtype, bname, type, histograms_in
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
@@ -180,6 +215,9 @@ def caption_eff(vlatex, tname):
 
 def caption_var_by_charge(vlatex, tname):
     return 'The spectra of $%s$ for barrel electrons (top), intermediate electrons (middle), and forward electrons (bottom) for $e^+$ (left) and $e^-$ (right) for events firing the %s trigger.'%(vlatex, triggers[tname].short_latex )
+
+def caption_var_by_beforeAfter(vlatex, tname):
+    return 'The spectra of $%s$ for barrel electrons (top), intermediate electrons (middle), and forward electrons (bottom) for before (left) and after (right) a selection on $s$ for events firing the %s trigger.'%(vlatex, triggers[tname].short_latex )
 
 def caption_eff_by_charge(vlatex, tname):
     return 'Efficiency curves as a function of $%s$ for barrel electrons (top), intermediate electrons (middle), and forward electrons (bottom) at $8\\tev$ (left) and $13\\tev$ (right) for events firing the %s trigger.'%(vlatex, triggers[tname].short_latex )
