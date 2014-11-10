@@ -3,7 +3,7 @@ from module_legend import make_legend, fill_legend
 from module_sample import beam_names, beams, trigger_names, triggers, all_samples, trigger_names, triggers
 from module_vars   import region_names, regions
 
-hBase_pt = ROOT.TH1F('hBase_pt', '', 100, 0, 100)
+hBase_pt = ROOT.TH1F('hBase_pt', '', 100, 0, 150)
 hBase_pt.GetXaxis().SetTitle('E_{T}(e) [GeV]')
 hBase_pt.GetYaxis().SetTitle('superclusters per GeV')
 hBase_pt.GetYaxis().SetLabelSize(0.03)

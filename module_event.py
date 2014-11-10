@@ -159,4 +159,4 @@ s_a_phi2['F'] = 0.0009636
 s_a_RZ  ['F'] = 0.03975
 
 def s(phi1, phi2, RZ, region):
-    return sqrt( pow(phi1/s_a_phi1[region],2) + pow(phi2/s_a_phi1[region],2) + pow(RZ/s_a_RZ[region],2))
+    return sqrt( pow(phi1/s_a_phi1[region],2) + pow(phi2/s_a_phi2[region],2) + pow(RZ/s_a_RZ[region],2))

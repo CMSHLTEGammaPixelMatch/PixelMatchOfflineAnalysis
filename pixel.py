@@ -279,8 +279,8 @@ for v in var_groups:
 et_plots = {}
 scut = {'B':0.06,'I':0.07,'F':0.06}
 for s in all_samples.samples:
-    if 'Zee' not in s.name:
-        continue
+    #if 'Zee' not in s.name:
+    #    continue
     for rname in region_names:
         epw = et_plot_wrapper(s, rname)
         epw.fill(scut[rname], objects_to_save)

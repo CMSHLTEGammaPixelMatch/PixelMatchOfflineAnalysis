@@ -1,5 +1,6 @@
 import string
 import math
+import numpy
 import ROOT
 import module_vars, module_event
 from module_vars   import region_names
@@ -79,6 +80,43 @@ triggers['trigger_27'  ] = trigger_object('trigger_27'  , 'HLT_Ele27_WP80_v13', 
 triggers['trigger_17_8'] = trigger_object('trigger_17_8', 'HLT_Ele17_Ele8_v19', 'HLT_Ele17_Ele8_v19', 'HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_v20')
 trigger_names = ['trigger_27','trigger_17_8']
 
+##########################################################################################
+# Tree wrapper for making output TTree                                                   #
+##########################################################################################
+class branch_wrapper:
+    def __init__(self, name, tree):
+        self.name = name
+        self.value = numpy.zeros(1, dtype=float)
+        tree.Branch(self.name, self.value, '%s/D'%self.name)
+        
+
+class tree_wrapper:
+    def __init__(self, name):
+        self.name = name
+        
+        self.file = ROOT.TFile('../ntuples/tiny/%s.root'%self.name, 'RECREATE')
+        self.tree = ROOT.TTree('events','')
+        
+        self.branchNames = []
+        self.branches = {}
+        
+        for rname in region_names:
+            self.branchNames.append('smallest_phi1_%s'%rname)
+            self.branchNames.append('smallest_phi2_%s'%rname)
+            self.branchNames.append('smallest_rz2_%s' %rname)
+            self.branchNames.append('smallest_s_%s'   %rname)
+        
+        for bname in self.branchNames:
+            self.branches[bname] = branch_wrapper(bname, self.tree)    
+        
+    def fill(self, event):
+        for rname in region_names:
+            self.branches['smallest_phi1_%s'%rname].value[0] = event.smallest_phi1[rname]
+            self.branches['smallest_phi2_%s'%rname].value[0] = event.smallest_phi2[rname]
+            self.branches['smallest_rz2_%s' %rname].value[0] = event.smallest_rz  [rname]
+            self.branches['smallest_s_%s'   %rname].value[0] = event.smallest_s   [rname]
+        self.tree.Fill()
+        
 
 ##########################################################################################
 # Samples                                                                                #
@@ -92,9 +130,11 @@ class sample_object:
         self.crab_id = crab_id
         self.n_jobs  = n_jobs
         
-        self.var_filename = '../output/CRAB/outfile_%s_%s_%s.root'%(self.process.name, self.beam.filename, self.trigger.name)
+        self.var_filename = '../ntuples/input/outfile_%s_%s_%s.root'%(self.process.name, self.beam.filename, self.trigger.name)
         self.var_rootfile = ROOT.TFile(self.var_filename)
         self.var_ttree = self.var_rootfile.Get('electrons')
+        
+        self.tree_out_wrapper = tree_wrapper(self.name)
             
         self.events = []
         
@@ -116,8 +156,8 @@ class sample_object:
             self.phi2[rname] = []
             self.rz2[rname]  = []
             self.n_el[rname] = 0
-        self.histograms    = {}
-        self.histograms_2D = {}
+        self.histograms       = {}
+        self.histograms_2D    = {}
         self.histograms_2Deff = {}
         
     def set_style(self, h):
@@ -132,8 +172,8 @@ class sample_object:
     
     def make_events(self, tag_window):
         tree = self.var_ttree
-        nEvents = min(1000000000000,tree.GetEntries())
-        #nEvents = min(1000,tree.GetEntries())
+        #nEvents = min(1000000000000,tree.GetEntries())
+        nEvents = min(10000,tree.GetEntries())
         
         self.n_el_0 = 0
         self.n_el_1 = 0
@@ -188,18 +228,18 @@ class sample_object:
                     subDet1 = tree.el_subDet1.at(i_el).at(i_helix)
                     subDet2 = tree.el_subDet2.at(i_el).at(i_helix)
                     if charge > 0:
-                        dPhi1   = tree.el_dPhi1_pos.at(i_el).at(i_helix)
-                        dPhi2   = tree.el_dPhi2_pos.at(i_el).at(i_helix)
-                        dRz1    = tree.el_dRz1_pos .at(i_el).at(i_helix)
-                        dRz2    = tree.el_dRz2_pos .at(i_el).at(i_helix)
-                        s2      = tree.el_s2_pos  .at(i_el).at(i_helix)
-                        helix_neg = helix_neg+1
+                        dPhi1 = tree.el_dPhi1_pos.at(i_el).at(i_helix)
+                        dPhi2 = tree.el_dPhi2_pos.at(i_el).at(i_helix)
+                        dRz1  = tree.el_dRz1_pos .at(i_el).at(i_helix)
+                        dRz2  = tree.el_dRz2_pos .at(i_el).at(i_helix)
+                        s2    = tree.el_s2_pos  .at(i_el).at(i_helix)
+                        helix_pos = helix_pos+1
                     else:
-                        dPhi1   = tree.el_dPhi1_neg.at(i_el).at(i_helix)
-                        dPhi2   = tree.el_dPhi2_neg.at(i_el).at(i_helix)
-                        dRz1    = tree.el_dRz1_neg .at(i_el).at(i_helix)
-                        dRz2    = tree.el_dRz2_neg .at(i_el).at(i_helix)
-                        s2      = tree.el_s2_neg   .at(i_el).at(i_helix)
+                        dPhi1 = tree.el_dPhi1_neg.at(i_el).at(i_helix)
+                        dPhi2 = tree.el_dPhi2_neg.at(i_el).at(i_helix)
+                        dRz1  = tree.el_dRz1_neg .at(i_el).at(i_helix)
+                        dRz2  = tree.el_dRz2_neg .at(i_el).at(i_helix)
+                        s2    = tree.el_s2_neg   .at(i_el).at(i_helix)
                         helix_neg = helix_neg+1
                         
                     helix = module_event.electron_helix(dPhi1, dPhi2, dRz1, dRz2, s2, charge, subDet1, subDet2)
@@ -211,10 +251,14 @@ class sample_object:
                     self.phi2[helix.region].append(abs(helix.phi2))
                     self.rz2[helix.region] .append(abs(helix.rz2 ))
                     
-                    ev.smallest_phi1[helix.region] = min(helix.phi1, ev.smallest_phi1[helix.region])
-                    ev.smallest_phi2[helix.region] = min(helix.phi2, ev.smallest_phi2[helix.region])
-                    ev.smallest_rz  [helix.region] = min(helix.rz2 , ev.smallest_rz  [helix.region])
-                    ev.smallest_s   [helix.region] = min(helix.s_  , ev.smallest_s   [helix.region])
+                    if math.fabs(helix.phi1) < math.fabs(ev.smallest_phi1[helix.region]):
+                        ev.smallest_phi1[helix.region] = helix.phi1
+                    if math.fabs(helix.phi2) < math.fabs(ev.smallest_phi2[helix.region]):
+                        ev.smallest_phi2[helix.region] = helix.phi2
+                    if math.fabs(helix.rz2 ) < math.fabs(ev.smallest_rz  [helix.region]):
+                        ev.smallest_rz  [helix.region] = helix.rz2
+                    if math.fabs(helix.s_  ) < math.fabs(ev.smallest_s   [helix.region]):
+                        ev.smallest_s   [helix.region] = helix.s_
                     
                     el.add_helix(helix)
                 el.calculate_charge()
@@ -232,16 +276,20 @@ class sample_object:
                 if e1.is_tagged==True or tag_and_probe==False:
                     ev.probe_electrons.append(e1)
             events.append(ev)
-        print "Events with 0 electrons: %d"%self.n_el_0
-        print "Events with 1 electron : %d"%self.n_el_1
-        print "Events with 2 electrons: %d"%self.n_el_2
-        print "Events with 3 electrons: %d"%self.n_el_3
-        print "Events with 4 electrons: %d"%self.n_el_4
+            
+            self.tree_out_wrapper.fill(ev)
+            
+        print 'Events with 0 electrons: %d'%self.n_el_0
+        print 'Events with 1 electron : %d'%self.n_el_1
+        print 'Events with 2 electrons: %d'%self.n_el_2
+        print 'Events with 3 electrons: %d'%self.n_el_3
+        print 'Events with 4 electrons: %d'%self.n_el_4
         
         for rname in region_names:
             self.n_el[rname] = len(self.phi1[rname])
         
         self.events = events
+        self.tree_out_wrapper.file.Write()
     
     def add_var_histogram(self, var, region):
         histos = []
