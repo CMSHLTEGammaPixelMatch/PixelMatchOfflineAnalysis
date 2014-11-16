@@ -139,7 +139,7 @@ for suffix in print_suffixes:
             canvas.Print(print_name)
         for hName_2Deff in s.histograms_2Deff:
             canvas.Clear()
-            print_name = '../plots/vars/%s.%s'%h(Name_2Deff,suffix)
+            print_name = '../plots/vars/%s.%s'%(hName_2Deff,suffix)
             s.histograms_2Deff[hName_2Deff][0].Draw('colz')
             canvas.Print(print_name)
 
