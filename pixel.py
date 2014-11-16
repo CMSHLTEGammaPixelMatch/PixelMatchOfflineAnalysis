@@ -17,8 +17,9 @@ from module_eff_rej import eff_rej_curve, make_large_latex_table
 from module_window  import small_window
 from module_et      import et_plot_wrapper, et_latex
 
-print_pngs = True
-print_epss = True
+print_pngs = False
+print_epss = False
+make_2D_eff_histograms = False
 
 ##########################################################################################
 # ROOT and style                                                                         #
@@ -59,6 +60,7 @@ canvas_log.SetLogy()
 ##########################################################################################
 # Make histograms                                                                        #
 ##########################################################################################
+objects_to_save  = []
 histograms_eff   = {}
 histograms_eff_s = {}
 histograms_var   = {}
@@ -68,9 +70,7 @@ scut = {}
 scut[trigger_names[0]] = {'B':0.34,'I':0.38,'F':0.29}
 scut[trigger_names[1]] = {'B':0.32,'I':0.39,'F':0.32}
 
-for s in all_samples.samples:
-    print s.name
-    s.make_events(small_window)
+ET_scut = {'B':0.06,'I':0.07,'F':0.06}
 
 for s in all_samples.samples:
     print s.name
@@ -78,19 +78,19 @@ for s in all_samples.samples:
         for vname in var_names:
             var = variables[vname]
             h_var = s.add_var_histogram(var, rname)
-            if h_var:
-                for h in h_var:
-                    histograms_var[h.GetName()] = h
-        s.fill_var_histograms(rname, scut)
-        for vname in var_names:
-            var = variables[vname]
-            h_eff = s.make_eff_histogram(var, rname)
-            if h_eff:
-                for h in h_eff:
-                    histograms_eff[h.GetName()] = h
-    s.make_2D_eff_histograms()
+            for h in h_var:
+                histograms_var[h.GetName()] = h
+        h_eff = s.make_eff_histograms(rname)
+            
+    s.make_events(small_window, scut, ET_scut)
+    h_eff = s.normalise_eff_histograms()
+    for h in h_eff:
+        histograms_eff[h.GetName()] = h
     
-    s.make_nPixelMatch_histogram(canvas)
+    if make_2D_eff_histograms:
+        s.make_2D_eff_histograms()
+    
+    objects_to_save.append(s.h_nPixelMatch)
 
 ##########################################################################################
 # Get means of signal parameters for s variables                                         #
@@ -108,7 +108,7 @@ for rname in region_names:
         sum_phi1[rname] += sum(sample.phi1[rname])
         sum_phi2[rname] += sum(sample.phi2[rname])
         sum_rz2 [rname] += sum(sample.rz2 [rname])
-        n[rname] += sample.n_el[rname]
+        n[rname]        += sample.n_el[rname]
     print '== %s == '%rname
     print 'm(phi1) = %8.4g'%(sum_phi1[rname]/n[rname])
     print 'm(phi2) = %8.4g'%(sum_phi2[rname]/n[rname])
@@ -152,13 +152,13 @@ for suffix in print_suffixes:
 ##########################################################################################
 # Make ROC curves                                                                        #
 ##########################################################################################
-objects_to_save = []
-
 eff_rej_curves = {}
 pname_sig = 'Zee'
 pname_bkg = 'QCD_Pt_30_80'
 eff_target_values_sig = [ 0.5 , 0.9 , 0.95 , 0.99 , 0.995 ]
 eff_target_values_bkg = [ 0.1 ,  0.3 ,  0.5 , 0.7 , 0.9 ]
+for hName in histograms_eff:
+    print hName
 for bname in beams:
     for tname in triggers:
         for rname in region_names:
@@ -260,13 +260,12 @@ for v in var_groups:
 # ET spectra                                                                             #
 ##########################################################################################
 et_plots = {}
-scut = {'B':0.06,'I':0.07,'F':0.06}
 for s in all_samples.samples:
     #if 'Zee' not in s.name:
     #    continue
     for rname in region_names:
         epw = et_plot_wrapper(s, rname)
-        epw.fill(scut[rname], objects_to_save)
+        epw.fill(s, objects_to_save)
         epw.print_canvas(objects_to_save)
         et_plots['%s_%s'%(s.name,rname)] = epw
 
@@ -279,9 +278,20 @@ for rname in regions:
 file = open('../note/snippets/et_plots.tex','w')
 file.write('\n\n'.join(snippets))
 
-#for s in all_samples.samples:
-#    s.hNPixelMatch.Draw()
-#    canvas.Print('../plots/vars/h_nPixelMatch%s.eps'%s.name)
+##########################################################################################
+# Number of pixel matches                                                                #
+##########################################################################################
+canvas.cd()
+for s in all_samples.samples:
+    s.h_nPixelMatch.Draw('pe')
+    canvas.Print('../plots/vars/h_nPixelMatch_%s.eps'%s.name)
+
+##########################################################################################
+# Number of pixel matches                                                                #
+##########################################################################################
+for s in all_samples.samples:
+    s.h_mee.Draw('pe')
+    canvas.Print('../plots/vars/h_mee_%s.eps'%s.name)
 
 ##########################################################################################
 # Write everything to file                                                               #
@@ -293,7 +303,7 @@ for object in objects_to_save:
     if object:
         object.Write()
         print 'Saving object to file: %s'%object.GetName()
-ROOT_file.Write()
+#ROOT_file.Write()
 ROOT_file.Close()
 
 

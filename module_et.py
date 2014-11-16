@@ -3,30 +3,6 @@ from module_legend import make_legend, fill_legend
 from module_sample import beam_names, beams, trigger_names, triggers, all_samples, trigger_names, triggers
 from module_vars   import region_names, regions
 
-hBase_pt = ROOT.TH1F('hBase_pt', '', 100, 0, 150)
-hBase_pt.GetXaxis().SetTitle('E_{T}(e) [GeV]')
-hBase_pt.GetYaxis().SetTitle('superclusters per GeV')
-hBase_pt.GetYaxis().SetLabelSize(0.03)
-hBase_pt.GetYaxis().SetTitleOffset(1.1)
-hBase_pt.SetMarkerStyle(20)
-hBase_pt.Sumw2()
-
-hBase_pt_pass = hBase_pt.Clone('hBase_pt_pass')
-hBase_pt_all  = hBase_pt.Clone('hBase_pt_all' )
-hBase_pt_pass.SetLineColor(ROOT.kRed)
-hBase_pt_pass.SetMarkerColor(ROOT.kRed)
-hBase_pt_pass.SetMarkerStyle(20)
-hBase_pt_all .SetLineColor(ROOT.kBlack)
-hBase_pt_all .SetMarkerColor(ROOT.kBlack)
-hBase_pt_all .SetMarkerStyle(22)
-
-legend = ROOT.TLegend(0.5,0.7,0.85,0.55)
-legend.SetFillColor(0)
-legend.SetBorderSize(0)
-legend.SetShadowColor(ROOT.kWhite)
-legend.AddEntry(hBase_pt_all , '2011-2012 pixel window', 'pl')
-legend.AddEntry(hBase_pt_pass, '#varepsilon=50% s cut' , 'pl')
-
 ratio_label = ROOT.TLatex(0.13,0.65,'Ratio')
 ratio_label.SetTextSize(0.15)
 ratio_label.SetNDC()
@@ -41,26 +17,15 @@ class et_plot_wrapper:
         self.name  = 'et_%s_%s'%(self.sname, self.rname)
         self.sample = sample
         self.region = regions[rname]
-        self.h_pt_pass = hBase_pt_pass.Clone('h_pt_pass_%s_%s'%(self.sname, rname))
-        self.h_pt_all  = hBase_pt_all .Clone('h_pt_all_%s_%s' %(self.sname, rname))
         
-    def fill(self, scut, objects_to_save):
-        for ev in self.sample.events:
-            same_region = False
-            for el in ev.electrons:
-                pt = el.p4.Pt()
-                accept = False
-                for helix in el.helices:
-                    if helix.region!=self.rname:
-                        continue
-                    same_region = True
-                    if helix.s_<scut:
-                        accept = True
-                        break
-                if accept:
-                    self.h_pt_pass.Fill(pt)
-                if same_region:
-                    self.h_pt_all.Fill(pt)
+        self.legend = ROOT.TLegend(0.5,0.7,0.85,0.55)
+        self.legend.SetFillColor(0)
+        self.legend.SetBorderSize(0)
+        self.legend.SetShadowColor(ROOT.kWhite)
+        
+    def fill(self, sample, objects_to_save):
+        self.h_pt_pass = sample.h_Et_pass[self.rname]
+        self.h_pt_all  = sample.h_Et_all [self.rname]
             
         max = -1e6
         for bin in range(1,self.h_pt_pass.GetNbinsX()+1):
@@ -111,6 +76,9 @@ class et_plot_wrapper:
         pad2.SetGridy()
         pad1.Draw()
         pad2.Draw()
+        
+        self.legend.AddEntry(self.h_pt_all , '2011-2012 pixel window', 'pl')
+        self.legend.AddEntry(self.h_pt_pass, '#varepsilon=90% s cut' , 'pl')
                 
         pad1.cd()
         self.h_pt_all.Draw('pe')
@@ -118,7 +86,7 @@ class et_plot_wrapper:
         self.h_pt_all.Draw('pe:sames')
         
         regions[self.rname].draw_label('ea')
-        legend.Draw()
+        self.legend.Draw()
         self.sample.trigger.TLatex.Draw()
         
         pad2.cd()

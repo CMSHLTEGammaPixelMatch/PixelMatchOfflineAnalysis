@@ -22,7 +22,7 @@ class eff_target:
                     best_dSigEff = dSigEff
                     self.value  = bkg[i]
                     self.actual = sig[i]
-                    self.cut    = x[i]
+                    self.cut    =   x[i]
         elif self.type=='bkg':
             best_dBkgEff = 1e6
             for i in range(0, len(sig)):
@@ -31,7 +31,7 @@ class eff_target:
                     best_dBkgEff = dBkgEff
                     self.value  = sig[i]
                     self.actual = bkg[i]
-                    self.cut    = x[i]
+                    self.cut    =   x[i]
 
 cw = 600
 ch = 600
@@ -44,9 +44,9 @@ def make_canvas(cname):
 
 class eff_rej_curve:
     def __init__(self, bname, tname, rname, vname, pname_sig, pname_bkg, eff_target_values_sig, eff_target_values_bkg   , histograms_eff):
-        self.beam    = beams[bname]
-        self.trigger = triggers[tname]
-        self.region  = regions[rname]
+        self.beam    =     beams[bname]
+        self.trigger =  triggers[tname]
+        self.region  =   regions[rname]
         self.var     = variables[vname]
         self.name = '%s_%s_%s_%s'%(vname, bname, tname, rname)
         
@@ -69,7 +69,7 @@ class eff_rej_curve:
         for bin in range(1, self.h_sig.GetNbinsX()+1):
             self.eff_sig.append(self.h_sig.GetBinContent(bin))
             self.eff_bkg.append(self.h_bkg.GetBinContent(bin))
-            self.x_value.append(self.h_bkg.GetBinCenter(bin))
+            self.x_value.append(self.h_bkg.GetBinCenter(bin) )
         
         for e in self.sig_eff_targets:
             e.seek_value(self.eff_sig, self.eff_bkg, self.x_value)
@@ -131,7 +131,7 @@ def make_large_latex_table(bname, type, curves, vnames, v_summary, v_caption, v_
     t1 = triggers[trigger_names[0]]
     t2 = triggers[trigger_names[1]]
     
-    other_type       = 'bkg' if type=='sig' else 'sig'
+    other_type       = 'bkg'        if type=='sig' else 'sig'
     type_latex       = 'signal'     if type=='sig' else 'background'
     other_type_latex = 'background' if type=='sig' else 'signal'
     

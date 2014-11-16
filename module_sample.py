@@ -3,12 +3,33 @@ import math
 import numpy
 import ROOT
 import module_vars, module_event
-from module_vars   import region_names
+from module_vars   import region_names, var_names, variables
 from module_window import small_window
 
 mZ_window_lower =  60
 mZ_window_upper = 120
-tag_and_probe = False
+tag_and_probe   = False
+cutOnZMass      = True
+
+##########################################################################################
+# ET histograms                                                                          #
+##########################################################################################
+hBase_Et = ROOT.TH1F('hBase_Et', '', 100, 0, 150)
+hBase_Et.GetXaxis().SetTitle('E_{T}(e) [GeV]')
+hBase_Et.GetYaxis().SetTitle('superclusters per GeV')
+hBase_Et.GetYaxis().SetLabelSize(0.03)
+hBase_Et.GetYaxis().SetTitleOffset(1.1)
+hBase_Et.SetMarkerStyle(20)
+hBase_Et.Sumw2()
+
+hBase_Et_pass = hBase_Et.Clone('hBase_Et_pass')
+hBase_Et_all  = hBase_Et.Clone('hBase_Et_all' )
+hBase_Et_pass.SetLineColor(ROOT.kRed)
+hBase_Et_pass.SetMarkerColor(ROOT.kRed)
+hBase_Et_pass.SetMarkerStyle(20)
+hBase_Et_all .SetLineColor(ROOT.kBlack)
+hBase_Et_all .SetMarkerColor(ROOT.kBlack)
+hBase_Et_all .SetMarkerStyle(22)
 
 ##########################################################################################
 # Processes                                                                              #
@@ -89,7 +110,6 @@ class branch_wrapper:
         self.value = numpy.zeros(1, dtype=float)
         tree.Branch(self.name, self.value, '%s/D'%self.name)
         
-
 class tree_wrapper:
     def __init__(self, name):
         self.name = name
@@ -117,7 +137,6 @@ class tree_wrapper:
             self.branches['smallest_s_%s'   %rname].value[0] = event.smallest_s   [rname]
         self.tree.Fill()
         
-
 ##########################################################################################
 # Samples                                                                                #
 ##########################################################################################
@@ -135,14 +154,6 @@ class sample_object:
         self.var_ttree = self.var_rootfile.Get('electrons')
         
         self.tree_out_wrapper = tree_wrapper(self.name)
-            
-        self.events = []
-        
-        self.n_s = {}
-        self.s   = {}
-        for r in module_vars.regions:
-            self.n_s[r] = []
-            self.s[r]   = []
         
         self.hBase = ROOT.TH1F('', '', 2, 0, 1)
         self.set_style(self.hBase)
@@ -157,8 +168,25 @@ class sample_object:
             self.rz2[rname]  = []
             self.n_el[rname] = 0
         self.histograms       = {}
+        self.eff_histograms   = {}
         self.histograms_2D    = {}
         self.histograms_2Deff = {}
+        
+        self.h_mee = ROOT.TH1F('h_mee_%s'%self.name, '', 100, 0, 200)
+        self.h_mee.GetXaxis().SetTitle('m(ee) [GeV]')
+        self.h_mee.GetYaxis().SetTitle('entries per 2 Gev')
+        self.set_style(self.h_mee)
+        
+        self.h_nPixelMatch = ROOT.TH1F('h_nPixelMatch_%s'%self.name, '', 21, -0.5, 20.5)
+        self.h_nPixelMatch.GetXaxis().SetTitle('Number of helices')
+        self.h_nPixelMatch.GetYaxis().SetTitle('Number of superclusters')
+        self.set_style(self.h_nPixelMatch)
+        
+        self.h_Et_pass = {}
+        self.h_Et_all  = {}
+        for rname in region_names:
+            self.h_Et_pass[rname] = hBase_Et_pass.Clone('h_Et_pass_%s_%s'%(self.name,rname))
+            self.h_Et_all [rname] = hBase_Et_all .Clone('h_Et_all_%s_%s' %(self.name,rname))
         
     def set_style(self, h):
         self.process.set_style(h)
@@ -170,132 +198,120 @@ class sample_object:
     def ROOT_title(self):
         return '%s %s'%(self.process.ROOT_title, self.beam.ROOT_title)
     
-    def make_events(self, tag_window):
+    def make_single_event(self, tree, tag_window, i_entry):
+        tree.GetEntry(i_entry)
+        ev = module_event.event()
+        ev.smallest_phi1 = {}
+        ev.smallest_phi2 = {}
+        ev.smallest_rz   = {}
+        ev.smallest_s    = {}
+        for rname in region_names:
+            ev.smallest_phi1[rname] = 1e6
+            ev.smallest_phi2[rname] = 1e6
+            ev.smallest_rz  [rname] = 1e6
+            ev.smallest_s   [rname] = 1e6
+        
+        n_el = min(tree.el_pt.size(), 4)
+        self.n_el_per_event[n_el] += 1
+            
+        for i_el in range(0,tree.el_pt.size()):
+            elp4 = ROOT.TLorentzVector()
+            elp4.SetPtEtaPhiE(tree.el_pt.at(i_el), tree.el_eta.at(i_el), tree.el_phi.at(i_el), tree.el_E.at(i_el))
+            el = module_event.electron_object(elp4)
+            helix_neg = 0
+            helix_pos = 0
+            vec = tree.el_subDet1.at(i_el)
+            n = len(vec)
+            
+            best_phi1 = 1e6
+            best_phi2 = 1e6
+            best_rz2  = 1e6
+            
+            for i_helix in range(0, n):
+                charge  = tree.el_matchCharge.at(i_el).at(i_helix)
+                subDet1 = tree.el_subDet1.at(i_el).at(i_helix)
+                subDet2 = tree.el_subDet2.at(i_el).at(i_helix)
+                if charge > 0:
+                    dPhi1 = tree.el_dPhi1_pos.at(i_el).at(i_helix)
+                    dPhi2 = tree.el_dPhi2_pos.at(i_el).at(i_helix)
+                    dRz1  = tree.el_dRz1_pos .at(i_el).at(i_helix)
+                    dRz2  = tree.el_dRz2_pos .at(i_el).at(i_helix)
+                    s2    = tree.el_s2_pos  .at(i_el).at(i_helix)
+                    helix_pos = helix_pos+1
+                else:
+                    dPhi1 = tree.el_dPhi1_neg.at(i_el).at(i_helix)
+                    dPhi2 = tree.el_dPhi2_neg.at(i_el).at(i_helix)
+                    dRz1  = tree.el_dRz1_neg .at(i_el).at(i_helix)
+                    dRz2  = tree.el_dRz2_neg .at(i_el).at(i_helix)
+                    s2    = tree.el_s2_neg   .at(i_el).at(i_helix)
+                    helix_neg = helix_neg+1
+                    
+                helix = module_event.electron_helix(dPhi1, dPhi2, dRz1, dRz2, s2, charge, subDet1, subDet2)
+                
+                accept = helix.passes_selections(small_window, False)
+                if accept==False:
+                    continue
+                self.phi1[helix.region].append(abs(helix.phi1))
+                self.phi2[helix.region].append(abs(helix.phi2))
+                self.rz2[helix.region] .append(abs(helix.rz2 ))
+                
+                if math.fabs(helix.phi1) < math.fabs(ev.smallest_phi1[helix.region]):
+                    ev.smallest_phi1[helix.region] = helix.phi1
+                if math.fabs(helix.phi2) < math.fabs(ev.smallest_phi2[helix.region]):
+                    ev.smallest_phi2[helix.region] = helix.phi2
+                if math.fabs(helix.rz2 ) < math.fabs(ev.smallest_rz  [helix.region]):
+                    ev.smallest_rz  [helix.region] = helix.rz2
+                if math.fabs(helix.s_  ) < math.fabs(ev.smallest_s   [helix.region]):
+                    ev.smallest_s   [helix.region] = helix.s_
+                
+                el.add_helix(helix)
+            el.calculate_charge()
+            el.pick_best_helix()
+            el.index = i_el
+            ev.electrons.append(el)
+            if el.passes_selections(tag_window,''):
+                ev.tag_electrons.append(el)
+        
+        for e1 in ev.electrons:
+            for e2 in ev.tag_electrons:
+                if e1.index==e2.index:
+                    continue
+                Zp4 = e1.p4 + e2.p4
+                self.h_mee.Fill(Zp4.M())
+                e1.is_tagged = ( mZ_window_lower<Zp4.M() and Zp4.M()<mZ_window_upper )
+            if e1.is_tagged==True or tag_and_probe==False:
+                ev.probe_electrons.append(e1)
+        return ev
+    
+    def make_events(self, tag_window, scut, ET_scut):
         tree = self.var_ttree
         #nEvents = min(1000000000000,tree.GetEntries())
         nEvents = min(10000,tree.GetEntries())
         
-        self.n_el_0 = 0
-        self.n_el_1 = 0
-        self.n_el_2 = 0
-        self.n_el_3 = 0
-        self.n_el_4 = 0
-        
-        events = []
+        self.n_el_per_event = []
+        for i in range(0,5):
+            self.n_el_per_event.append(0)
         
         for i_entry in range(0,nEvents):
-            tree.GetEntry(i_entry)
-            ev = module_event.event()
-            ev.smallest_phi1 = {}
-            ev.smallest_phi2 = {}
-            ev.smallest_rz   = {}
-            ev.smallest_s    = {}
-            for rname in region_names:
-                ev.smallest_phi1[rname] = 1e6
-                ev.smallest_phi2[rname] = 1e6
-                ev.smallest_rz  [rname] = 1e6
-                ev.smallest_s   [rname] = 1e6
-            
-            if tree.el_pt.size()==0:
-                self.n_el_0 += 1
-            if tree.el_pt.size()==1:
-                self.n_el_1 += 1
-            if tree.el_pt.size()==2:
-                self.n_el_2 += 1
-            if tree.el_pt.size()==3:
-                self.n_el_3 += 1
-            if tree.el_pt.size()>=4:
-                self.n_el_4 += 1
-                
-            if i_entry%10000==0:
+            if i_entry%1000==0:
                 print '%8d / %8d'%(i_entry, nEvents)
-                
-            for i_el in range(0,tree.el_pt.size()):
-                elp4 = ROOT.TLorentzVector()
-                elp4.SetPtEtaPhiE(tree.el_pt.at(i_el), tree.el_eta.at(i_el), tree.el_phi.at(i_el), tree.el_E.at(i_el))
-                el = module_event.electron_object(elp4)
-                helix_neg = 0
-                helix_pos = 0
-                vec = tree.el_subDet1.at(i_el)
-                n = len(vec)
-                
-                best_phi1 = 1e6
-                best_phi2 = 1e6
-                best_rz2  = 1e6
-                
-                for i_helix in range(0, n):
-                    charge  = tree.el_matchCharge.at(i_el).at(i_helix)
-                    subDet1 = tree.el_subDet1.at(i_el).at(i_helix)
-                    subDet2 = tree.el_subDet2.at(i_el).at(i_helix)
-                    if charge > 0:
-                        dPhi1 = tree.el_dPhi1_pos.at(i_el).at(i_helix)
-                        dPhi2 = tree.el_dPhi2_pos.at(i_el).at(i_helix)
-                        dRz1  = tree.el_dRz1_pos .at(i_el).at(i_helix)
-                        dRz2  = tree.el_dRz2_pos .at(i_el).at(i_helix)
-                        s2    = tree.el_s2_pos  .at(i_el).at(i_helix)
-                        helix_pos = helix_pos+1
-                    else:
-                        dPhi1 = tree.el_dPhi1_neg.at(i_el).at(i_helix)
-                        dPhi2 = tree.el_dPhi2_neg.at(i_el).at(i_helix)
-                        dRz1  = tree.el_dRz1_neg .at(i_el).at(i_helix)
-                        dRz2  = tree.el_dRz2_neg .at(i_el).at(i_helix)
-                        s2    = tree.el_s2_neg   .at(i_el).at(i_helix)
-                        helix_neg = helix_neg+1
-                        
-                    helix = module_event.electron_helix(dPhi1, dPhi2, dRz1, dRz2, s2, charge, subDet1, subDet2)
-                    
-                    accept = helix.passes_selections(small_window, False)
-                    if accept==False:
-                        continue
-                    self.phi1[helix.region].append(abs(helix.phi1))
-                    self.phi2[helix.region].append(abs(helix.phi2))
-                    self.rz2[helix.region] .append(abs(helix.rz2 ))
-                    
-                    if math.fabs(helix.phi1) < math.fabs(ev.smallest_phi1[helix.region]):
-                        ev.smallest_phi1[helix.region] = helix.phi1
-                    if math.fabs(helix.phi2) < math.fabs(ev.smallest_phi2[helix.region]):
-                        ev.smallest_phi2[helix.region] = helix.phi2
-                    if math.fabs(helix.rz2 ) < math.fabs(ev.smallest_rz  [helix.region]):
-                        ev.smallest_rz  [helix.region] = helix.rz2
-                    if math.fabs(helix.s_  ) < math.fabs(ev.smallest_s   [helix.region]):
-                        ev.smallest_s   [helix.region] = helix.s_
-                    
-                    el.add_helix(helix)
-                el.calculate_charge()
-                el.pick_best_helix()
-                el.index = i_el
-                ev.electrons.append(el)
-                if el.passes_selections(tag_window,''):
-                    ev.tag_electrons.append(el)
+            ev = self.make_single_event(tree, tag_window, i_entry)
             
-            for e1 in ev.electrons:
-                for e2 in ev.tag_electrons:
-                    if e1.index==e2.index:
-                        continue
-                    Zp4 = e1.p4 + e2.p4
-                    e1.is_tagged = ( mZ_window_lower<Zp4.M() and Zp4.M()<mZ_window_upper )
-                if e1.is_tagged==True or tag_and_probe==False:
-                    ev.probe_electrons.append(e1)
-            events.append(ev)
-            
+            self.fill_var_histograms_from_event(ev, scut, ET_scut)
+            self.fill_eff_histograms_from_event(ev)
             self.tree_out_wrapper.fill(ev)
             
-        print 'Events with 0 electrons: %d'%self.n_el_0
-        print 'Events with 1 electron : %d'%self.n_el_1
-        print 'Events with 2 electrons: %d'%self.n_el_2
-        print 'Events with 3 electrons: %d'%self.n_el_3
-        print 'Events with 4 electrons: %d'%self.n_el_4
-        
+        for n_el in range(0,5):
+            print "Events with %d electrons: %d"%(n_el, self.n_el_per_event[n_el])
         for rname in region_names:
             self.n_el[rname] = len(self.phi1[rname])
         
-        self.events = events
         self.tree_out_wrapper.file.Write()
     
     def add_var_histogram(self, var, region):
         histos = []
         if var.region!='A' and var.region!=region:
-            return False
+            return histos
         for cname in ['ep','em','ea']:
             for beforeAfter_name in ['','_after']:
                 hName = 'h_var_%s_%s_%s_%s%s'%(var.name, self.name, region, cname, beforeAfter_name)
@@ -335,21 +351,36 @@ class sample_object:
                 self.set_style(h2D)
                 if var.region=='A' or var.region==region:
                     self.histograms_2D[hName_2D] = [h2D, var]
-                
         return histos
     
-    def fill_var_histograms(self, region, scut):
-        counter = 0
-        for ev in self.events:
-            counter = counter + 1
-            if counter%10000==0:
-                print counter
-            for el in ev.electrons:
+    def fill_var_histograms_from_event(self, ev, scut, ET_scut):
+        for el in ev.electrons:
+            self.h_nPixelMatch.Fill(len(el.helices))    
+            for rname in region_names:
+                # Et histograms
+                Et = el.p4.Pt()
+                accept = False
+                same_region = False
+                for helix in el.helices:
+                    if helix.region!=rname:
+                        continue
+                    same_region = True
+                    if helix.s_<scut:
+                        accept = True
+                        break
+                if accept:
+                    self.h_Et_pass[rname].Fill(Et)
+                if same_region:
+                    self.h_Et_all [rname].Fill(Et)
+                
+                # Cut on Z peak
+                if 'Zee' in self.name and el.is_tagged==False and cutOnZMass:
+                    continue
                 best_helix = None
                 if False:
                     best_s = 1e6
                     for helix in el.helices:
-                        if helix.region!=region:
+                        if helix.region!=rname:
                             continue
                         if helix.s_ < best_s:
                             best_s = helix.s_
@@ -357,7 +388,7 @@ class sample_object:
                 else:
                     best_helix = el.best_helix
                 if best_helix==None:
-                    continue
+                    return
                 for hName in self.histograms:
                     if best_helix.region not in hName:
                         continue
@@ -366,11 +397,11 @@ class sample_object:
                         continue
                     if q<0 and '_em' not in hName and '_ea' not in hName:
                         continue
-                    if 'after' in hName and best_helix.s_ > scut[self.trigger.name][region]:
+                    if 'after' in hName and best_helix.s_ > scut[self.trigger.name][rname]:
                         continue
                     h_wrapper = self.histograms[hName]
                     h_wrapper[0].Fill(h_wrapper[1].get_helix_value(best_helix))
-                    
+            
                 for hName_2D in self.histograms_2D:
                     if best_helix.region not in hName_2D:
                         continue
@@ -379,10 +410,19 @@ class sample_object:
                         continue
                     if q<0 and '_em' not in hName_2D and '_ea' not in hName_2D:
                         continue
-                    if 'after' in hName and best_helix.s_ > scut[self.trigger.name][region]:
+                    if 'after' in hName and best_helix.s_ > scut[self.trigger.name][rname]:
                             continue
                     h2D_wrapper = self.histograms_2D[hName_2D]
                     h2D_wrapper[0].Fill(h2D_wrapper[1].get_helix_value(best_helix), el.p4.Pt())
+    
+    def fill_var_histograms(self, region, scut):
+        counter = 0
+        for ev in self.events:
+            counter = counter + 1
+            if counter%10000==0:
+                print counter
+            for el in ev.electrons:
+                self.fill_var_histograms_from_electron(region, scut, el)
     
     def make_2D_eff_histograms(self):
         for hName_2D in self.histograms_2D:
@@ -393,11 +433,6 @@ class sample_object:
                 for binx in range(1,h_eff.GetNbinsX()+1):
                     h_eff.SetBinContent(binx, biny, 0)
             
-            debug_ = False
-            if 'DoubleElectron' in hName_2D and '_ea' in hName_2D and 'phi1' in hName_2D and 'beam_8_50' in hName_2D and 'trigger_17_8' in hName_2D:
-                debug_ = True
-            debug_ = False
-                
             grand_total = 0
             for biny in range(1,h.GetNbinsY()+1):
                 for binx in range(1,h.GetNbinsX()+1):
@@ -417,8 +452,6 @@ class sample_object:
                     if total>0:
                         eff = n/total
                     h_eff.SetBinContent(binx,biny,eff)
-                    if debug_:
-                        print '%4d %4d %8f %5d'%(binx , biny , eff , total)
             
             for binx in range(1+h.GetNbinsX()/2,h.GetNbinsX()+1):
                 total = 0
@@ -428,61 +461,77 @@ class sample_object:
                 eff = total/grand_total if grand_total>0 else 0
                 for biny in range(1,h.GetNbinsY()+1):
                     h_eff.SetBinContent(binx,biny,eff)
-                    if debug_:
-                        print '%4d %4d %8f'%(binx , biny , eff)
                 
             self.histograms_2Deff[hName_2Deff] = [h_eff,self.histograms_2D[hName_2D][1]]
     
-    def make_nPixelMatch_histogram(self, canvas):
-        self.hNPixelMatch = ROOT.TH1F('h_nPixelMatch_%s'%self.name, '', 21, -0.5, 20.5)
-        for ev in self.events:
-            for el in ev.electrons:
-                self.hNPixelMatch.Fill(len(el.helices))
-        self.hNPixelMatch.Draw('pe')
-        canvas.Print('../plots/vars/h_nPixelMatch%s.eps'%self.name)
-                
-    
-    def make_eff_histogram(self, var, region):
+    def make_eff_histograms(self, region):
         histos = []
-        for cname in ['ep','em','ea']:
-            hName = 'h_eff_%s_%s_%s_%s'%(var.name, self.name, region, cname)
-            h = var.hBase_eff.Clone(hName)
+        for vname in var_names:
+            var = variables[vname]
             if var.region!='A' and var.region!=region:
-                return histos
-            h.Sumw2()
-            self.set_style(h)
-            for bin in range(1, h.GetNbinsX()+1):
-                x_max = h.GetBinCenter(bin)
-                n_pass = 0
-                for ev in self.events:
-                    accept = False
-                    for el in ev.electrons:
-                        for helix in el.helices:
-                            if helix.region!=region:
-                                continue
-                            if helix.charge>0 and cname=='em':
-                                continue
-                            if helix.charge<0 and cname=='ep':
-                                continue
-                            if abs(var.get_helix_value(helix)) < x_max:
-                                accept = True
+                continue
+            for cname in ['ep','em','ea']:
+                hName = 'h_eff_%s_%s_%s_%s'%(vname, self.name, region, cname)
+                h = var.hBase_eff.Clone(hName)
+                h.Sumw2()
+                self.set_style(h)
+                histos.append(h)
+                self.eff_histograms[hName] = h
+        return histos
+    
+    def fill_eff_histograms_from_event(self, ev):
+        for vname in var_names:
+            var = variables[vname]
+            for rname in region_names:
+                for cname in ['ep','em','ea']:
+                    hName = 'h_eff_%s_%s_%s_%s'%(var.name, self.name, rname, cname)
+                    if hName not in self.eff_histograms:
+                        continue
+                    h = self.eff_histograms[hName]
+                    if var.region!='A' and var.region!=rname:
+                        return
+                    for bin in range(1, h.GetNbinsX()+1):
+                        x_max = h.GetBinCenter(bin)
+                        accept = False
+                        for el in ev.electrons:
+                            for helix in el.helices:
+                                if helix.region!=rname:
+                                    continue
+                                if helix.charge>0 and cname=='em':
+                                    continue
+                                if helix.charge<0 and cname=='ep':
+                                    continue
+                                if abs(var.get_helix_value(helix)) < x_max:
+                                    accept = True
+                                    break
+                            if accept:
                                 break
                         if accept:
-                            break
-                    if accept:
-                        n_pass += 1
-                h.SetBinContent(bin, n_pass)
-                h.SetBinError(bin, math.sqrt(n_pass))
-            denom = h.GetMaximum()
-            if denom < 1e-3:
-                denom = 1
-            for bin in range(1, h.GetNbinsX()+1):
-                eff = h.GetBinContent(bin)/denom
-                err = math.sqrt(eff*(1-eff)/denom)
-                h.SetBinContent(bin,eff)
-                h.SetBinError  (bin,err)
-            histos.append(h)
-        return histos
+                            h.SetBinContent(bin, h.GetBinContent(bin)+1)
+    
+    def normalise_eff_histograms(self):
+        histos = []
+        for vname in var_names:
+            var = variables[vname]
+            for rname in region_names:
+                for cname in ['ep','em','ea']:
+                    hName = 'h_eff_%s_%s_%s_%s'%(vname, self.name, rname, cname)
+                    if hName not in self.eff_histograms:
+                        continue
+                    h = self.eff_histograms[hName]
+                    if var.region!='A' and var.region!=rname:
+                        return
+                    denom = h.GetMaximum()
+                    if denom < 1e-3:
+                        denom = 1
+                    for bin in range(1, h.GetNbinsX()+1):
+                        eff = h.GetBinContent(bin)/denom
+                        err = math.sqrt(eff*(1-eff)/denom)
+                        h.SetBinContent(bin,eff)
+                        h.SetBinError  (bin,err)
+                        #print h.GetBinContent(bin) , denom , eff , err
+                    histos.append(h)
+        return histos      
         
 class sample_container:
     def __init__(self, samples_in):

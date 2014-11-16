@@ -31,7 +31,7 @@ def latex_var_table(vlatex, vnames, vtype, cname, type, histograms_in, objects_t
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, 'vanilla', objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
@@ -53,20 +53,18 @@ def latex_var_table_by_beforeAfter(vlatex, vnames, vtype, cname, type, histogram
     
     for rname in region_names:
         for bname in beam_names:
-            print
             histograms = []
             for s in all_samples.samples:
                 sname = s.name
                 if bname in sname and tname in sname:
                     aname = '_after'
                     hname = 'h_%s_%s_%s_%s_%s%s'%(type, vnames[rname], sname, rname, cname, aname)
-                    print hname
                     histograms.append(histograms_in[hname])
             image_counter = image_counter+1
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '_after', type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '_after', type, 'beforeAfter', objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
@@ -100,7 +98,7 @@ def latex_var_table_by_charge(vlatex, vnames, vtype, bname, type, histograms_in,
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, 'charge', objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
@@ -134,44 +132,11 @@ def latex_var_table_by_trigger(vlatex, vnames, vtype, bname, type, histograms_in
             suffix = '&' if image_counter%2==1 else '\\\\'
             legend = make_legend(0.1,0.85,0.55,0.7)
             fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, objects_to_save)
+            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vtype, cname, '', type, 'trigger', objects_to_save)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
     lines.append('  \\label{fig:%s_%s_byTrigger}'%(type, vtype))
-    lines.append('  \\end{center}')
-    lines.append('\\end{figure}')
-    lines.append('\\clearpage')
-    return '\n'.join(lines)
-
-def latex_var_table_old(vname, rname, cname, type, histograms_in, objects_to_save):
-    lines = []
-    lines.append('\\begin{figure}[!bht]')
-    lines.append('  \\begin{center}')
-    lines.append('    \\begin{tabular}{cc}')
-    image_counter = 0
-    
-    caption = caption_var(vname, rname)
-    if type=='eff':
-        caption = caption_eff(vname, rname)
-    
-    for bname in beam_names:
-        for tname in trigger_names:
-            histograms = []
-            for s in all_samples.samples:
-                sname = s.name
-                if bname in sname and tname in sname:
-                    hname = 'h_%s_%s_%s_%s_%s'%(type, vname, sname, rname, cname)
-                    histograms.append(histograms_in[hname])
-            image_counter = image_counter+1
-            suffix = '&' if image_counter%2==1 else '\\\\'
-            legend = make_legend(0.1,0.85,0.55,0.7)
-            fill_legend(legend, [bname,tname])
-            figure_name = plot_multiple_histograms(histograms, legend, bname, tname, rname, vname, cname, type, objects_to_save)
-            lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
-    lines.append('    \\end{tabular}')
-    lines.append('  \\caption{%s}'%caption)
-    lines.append('  \\label{fig:%s_%s_%s}'%(type, vname, rname))
     lines.append('  \\end{center}')
     lines.append('\\end{figure}')
     lines.append('\\clearpage')
