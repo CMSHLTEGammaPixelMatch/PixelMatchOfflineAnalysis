@@ -89,6 +89,8 @@ for s in all_samples.samples:
                 for h in h_eff:
                     histograms_eff[h.GetName()] = h
     s.make_2D_eff_histograms()
+    
+    s.make_nPixelMatch_histogram(canvas)
 
 ##########################################################################################
 # Get means of signal parameters for s variables                                         #
@@ -116,53 +118,34 @@ for rname in region_names:
 ##########################################################################################
 # Print histograms                                                                       #
 ##########################################################################################
+print_suffixes = []
 if print_pngs:
-    for hName in histograms_var:
-        canvas.Clear()
-        print_name = '../plots/vars/%s.png'%hName
-        histograms_var[hName].Draw('pe')
-        canvas.Print(print_name)
-    
-    for s in all_samples.samples:
-        for hName_2D in s.histograms_2D:
-            canvas.Clear()
-            print_name = '../plots/vars/%s.png'%hName_2D
-            s.histograms_2D[hName_2D][0].Draw('colz')
-            canvas.Print(print_name)
-        for hName_2Deff in s.histograms_2Deff:
-            canvas.Clear()
-            print_name = '../plots/vars/%s.png'%hName_2Deff
-            s.histograms_2Deff[hName_2Deff][0].Draw('colz')
-            canvas.Print(print_name)
-
-    for hName in histograms_eff:
-        canvas.Clear()
-        print_name = '../plots/effs/%s.png'%hName
-        histograms_eff[hName].Draw('pe')
-        canvas.Print(print_name)
-
+    print_suffixes.append('png')
 if print_epss:
+    print_suffixes.append('eps')
+
+for suffix in print_suffixes:
     for hName in histograms_var:
         canvas.Clear()
-        print_name = '../plots/vars/%s.eps'%hName
+        print_name = '../plots/vars/%s.%s'%(hName,suffix)
         histograms_var[hName].Draw('pe')
         canvas.Print(print_name)
     
     for s in all_samples.samples:
         for hName_2D in s.histograms_2D:
             canvas.Clear()
-            print_name = '../plots/vars/%s.eps'%hName_2D
+            print_name = '../plots/vars/%s.%s'%(hName_2D,suffix)
             s.histograms_2D[hName_2D][0].Draw('colz')
             canvas.Print(print_name)
         for hName_2Deff in s.histograms_2Deff:
             canvas.Clear()
-            print_name = '../plots/vars/%s.eps'%hName_2Deff
+            print_name = '../plots/vars/%s.%s'%h(Name_2Deff,suffix)
             s.histograms_2Deff[hName_2Deff][0].Draw('colz')
             canvas.Print(print_name)
 
     for hName in histograms_eff:
         canvas.Clear()
-        print_name = '../plots/effs/%s.eps'%hName
+        print_name = '../plots/effs/%s.%s'%(hName,suffix)
         histograms_eff[hName].Draw('pe')
         canvas.Print(print_name)
 
@@ -295,6 +278,10 @@ for rname in regions:
     snippets.append('\\clearpage')
 file = open('../note/snippets/et_plots.tex','w')
 file.write('\n\n'.join(snippets))
+
+#for s in all_samples.samples:
+#    s.hNPixelMatch.Draw()
+#    canvas.Print('../plots/vars/h_nPixelMatch%s.eps'%s.name)
 
 ##########################################################################################
 # Write everything to file                                                               #

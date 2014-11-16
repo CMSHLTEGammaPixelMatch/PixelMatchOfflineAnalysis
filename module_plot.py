@@ -32,7 +32,7 @@ def make_canvas(cname):
 ##########################################################################################
 def plot_multiple_histograms(histos, legend, bname, tname, rname, vname, cname, aname, type, objects_to_save):
     height_scale = 2.0 if type=='var' else 1.6
-    best_h = -1
+    best_h = histos[0]
     max_height =  0
     for h in histos:
         if h.GetSumOfWeights()<1e-6:
@@ -44,9 +44,8 @@ def plot_multiple_histograms(histos, legend, bname, tname, rname, vname, cname, 
         if height > max_height:
             max_height = height
             best_h = h
-    if best_h==-1:
-        return
-    best_h.SetMaximum(height_scale*best_h.GetMaximum())
+    if best_h!=-1:
+        best_h.SetMaximum(height_scale*best_h.GetMaximum())
     
     canvas_name = 'h_multi%s_%s_%s_%s_%s_%s%s'%(type, vname, bname, tname, rname, cname, aname)
     canvas_tmp = make_canvas(canvas_name)

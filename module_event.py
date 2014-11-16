@@ -66,13 +66,15 @@ class electron_object:
         return self.charge
 
     def pick_best_helix(self):
-        best_s = 1e6
-        best_helix = False
+        self.best_s = 1e6
+        self.best_helix = None
+        self.best_region = 'X'
         for helix in self.helices:
-            if helix.s < best_s:
-                best_s = helix.s
-                best_helix = helix
-        return best_helix
+            if helix.s_ < self.best_s:
+                self.best_s = helix.s_
+                self.best_helix = helix
+                self.best_region = self.best_helix.region
+        return self.best_helix
 
 class electron_helix:
     def __init__(self, dPhi1_in, dPhi2_in, dRz1_in, dRz2_in, s2_in, charge_in, subDet1_in, subDet2_in):

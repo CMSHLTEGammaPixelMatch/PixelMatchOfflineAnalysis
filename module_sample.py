@@ -262,6 +262,7 @@ class sample_object:
                     
                     el.add_helix(helix)
                 el.calculate_charge()
+                el.pick_best_helix()
                 el.index = i_el
                 ev.electrons.append(el)
                 if el.passes_selections(tag_window,''):
@@ -344,40 +345,44 @@ class sample_object:
             if counter%10000==0:
                 print counter
             for el in ev.electrons:
-                best_helix = 0
-                best_s = 1e6
-                for helix in el.helices:
-                    if helix.region!=region:
+                best_helix = None
+                if False:
+                    best_s = 1e6
+                    for helix in el.helices:
+                        if helix.region!=region:
+                            continue
+                        if helix.s_ < best_s:
+                            best_s = helix.s_
+                            best_helix = helix
+                else:
+                    best_helix = el.best_helix
+                if best_helix==None:
+                    continue
+                for hName in self.histograms:
+                    if best_helix.region not in hName:
                         continue
-                    if helix.s_ < best_s:
-                        best_s = helix.s_
-                        best_helix = helix
-                if best_helix!=0:
-                    for hName in self.histograms:
-                        if best_helix.region not in hName:
+                    q = best_helix.charge
+                    if q>0 and '_ep' not in hName and '_ea' not in hName:
+                        continue
+                    if q<0 and '_em' not in hName and '_ea' not in hName:
+                        continue
+                    if 'after' in hName and best_helix.s_ > scut[self.trigger.name][region]:
+                        continue
+                    h_wrapper = self.histograms[hName]
+                    h_wrapper[0].Fill(h_wrapper[1].get_helix_value(best_helix))
+                    
+                for hName_2D in self.histograms_2D:
+                    if best_helix.region not in hName_2D:
+                        continue
+                    q = best_helix.charge
+                    if q>0 and '_ep' not in hName_2D and '_ea' not in hName_2D:
+                        continue
+                    if q<0 and '_em' not in hName_2D and '_ea' not in hName_2D:
+                        continue
+                    if 'after' in hName and best_helix.s_ > scut[self.trigger.name][region]:
                             continue
-                        q = best_helix.charge
-                        if q>0 and '_ep' not in hName and '_ea' not in hName:
-                            continue
-                        if q<0 and '_em' not in hName and '_ea' not in hName:
-                            continue
-                        if 'after' in hName and helix.s_ > scut[self.trigger.name][region]:
-                                continue
-                        h_wrapper = self.histograms[hName]
-                        h_wrapper[0].Fill(h_wrapper[1].get_helix_value(best_helix))
-                        
-                    for hName_2D in self.histograms_2D:
-                        if best_helix.region not in hName_2D:
-                            continue
-                        q = best_helix.charge
-                        if q>0 and '_ep' not in hName_2D and '_ea' not in hName_2D:
-                            continue
-                        if q<0 and '_em' not in hName_2D and '_ea' not in hName_2D:
-                            continue
-                        if 'after' in hName and helix.s_ > scut[self.trigger.name][region]:
-                                continue
-                        h2D_wrapper = self.histograms_2D[hName_2D]
-                        h2D_wrapper[0].Fill(h2D_wrapper[1].get_helix_value(best_helix), el.p4.Pt())
+                    h2D_wrapper = self.histograms_2D[hName_2D]
+                    h2D_wrapper[0].Fill(h2D_wrapper[1].get_helix_value(best_helix), el.p4.Pt())
     
     def make_2D_eff_histograms(self):
         for hName_2D in self.histograms_2D:
@@ -420,14 +425,22 @@ class sample_object:
                 for biny in range(1,h.GetNbinsY()+1):
                     for bintmp in range(h.GetNbinsX()+1-binx,binx+1):
                         total = total + h.GetBinContent(bintmp, biny)
-                eff = total/grand_total
+                eff = total/grand_total if grand_total>0 else 0
                 for biny in range(1,h.GetNbinsY()+1):
                     h_eff.SetBinContent(binx,biny,eff)
                     if debug_:
                         print '%4d %4d %8f'%(binx , biny , eff)
                 
             self.histograms_2Deff[hName_2Deff] = [h_eff,self.histograms_2D[hName_2D][1]]
-        
+    
+    def make_nPixelMatch_histogram(self, canvas):
+        self.hNPixelMatch = ROOT.TH1F('h_nPixelMatch_%s'%self.name, '', 21, -0.5, 20.5)
+        for ev in self.events:
+            for el in ev.electrons:
+                self.hNPixelMatch.Fill(len(el.helices))
+        self.hNPixelMatch.Draw('pe')
+        canvas.Print('../plots/vars/h_nPixelMatch%s.eps'%self.name)
+                
     
     def make_eff_histogram(self, var, region):
         histos = []

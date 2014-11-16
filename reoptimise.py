@@ -65,10 +65,6 @@ histograms_eff_s = {}
 histograms_var   = {}
 graphs_eff       = {}
 
-scut = {} 
-scut[trigger_names[0]] = {'B':0.34,'I':0.38,'F':0.29}
-scut[trigger_names[1]] = {'B':0.32,'I':0.39,'F':0.32}
-
 for s in all_samples.samples:
     if 'Zee' not in s.name:
         continue
@@ -100,7 +96,6 @@ for rname in region_names:
     for r in region_names:
         h2D_DeltaS_eta[rname][r] = h2DBase_s_eta[rname].Clone('h2D_DeltaS%s%s_eta'%(rname,r))
         h2D_DeltaS_eta[rname][r].GetYaxis().SetTitle('tanh(s_{%s}/10)-tanh(s_{%s}/10)'%(rname,r))
-        
         h2D_s_s[rname][r] = h2DBase_s_s[rname][r].Clone('h2D_s%s_s%s'%(rname,r))
 
 h_region_bitmap = ROOT.TH1F('h_region_bitmap', '', 8, -0.5, 7.5)
