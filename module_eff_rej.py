@@ -84,14 +84,14 @@ class eff_rej_curve:
         self.graph.GetXaxis().SetTitle('relative background efficiency')
         self.graph.GetYaxis().SetTitle('relative signal efficiency')
         self.graph.SetMarkerStyle(20)
+        self.graph.SetName('g_rejeff_%s'%self.name)
         
-        self.print_name = '../plots/eff_rej/h_rejeff_%s_%s_%s_%s_%s_%s.png'%(vname, pname_sig, pname_bkg, bname, tname, rname)
+        self.print_name = '../plots/eff_rej/h_rejeff_%s_%s_%s_%s_%s_%s.eps'%(vname, pname_sig, pname_bkg, bname, tname, rname)
     def plot(self, objects_to_save):
         cname = 'canavs_%s'%self.name
         canvas_tmp = make_canvas(cname)
         self.graph.Draw('ALP')
         canvas_tmp.Print(self.print_name)
-        #objects_to_save.append(self.graph)
         
     def latex_table_rows(self, type):
         lines = []

@@ -157,8 +157,6 @@ pname_sig = 'Zee'
 pname_bkg = 'QCD_Pt_30_80'
 eff_target_values_sig = [ 0.5 , 0.9 , 0.95 , 0.99 , 0.995 ]
 eff_target_values_bkg = [ 0.1 ,  0.3 ,  0.5 , 0.7 , 0.9 ]
-for hName in histograms_eff:
-    print hName
 for bname in beams:
     for tname in triggers:
         for rname in region_names:
@@ -173,6 +171,7 @@ for bname in beams:
                 erc.plot(objects_to_save)
                 eff_rej_curves[ename] = erc
                 graphs_eff['g_%s'%ename] = eff_rej_curves[ename].graph
+                objects_to_save.append(eff_rej_curves[ename].graph)
 
 ##########################################################################################
 # Print canvases                                                                         #
@@ -223,7 +222,9 @@ for cname in ['ep','em','ea']:
         file.write('\n\n'.join(snippets))
 
 # Main efficiency vs rejection plots
-for cname in ['ep','em','ea']:
+for g in graphs_eff:
+    print g
+for cname in ['ea']:
     for v in var_groups:
         snippets = []
         snippets.append(latex_multieff(v[4], v[0], v[2], cname, graphs_eff, objects_to_save))
@@ -303,7 +304,7 @@ for object in objects_to_save:
     if object:
         object.Write()
         print 'Saving object to file: %s'%object.GetName()
-#ROOT_file.Write()
+ROOT_file.Write()
 ROOT_file.Close()
 
 

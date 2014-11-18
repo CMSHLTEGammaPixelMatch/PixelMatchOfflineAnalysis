@@ -2,7 +2,7 @@ import string
 import math
 import numpy
 import ROOT
-import module_vars, module_event
+import module_vars, module_event, module_settings
 from module_vars   import region_names, var_names, variables
 from module_window import small_window
 
@@ -285,8 +285,7 @@ class sample_object:
     
     def make_events(self, tag_window, scut, ET_scut):
         tree = self.var_ttree
-        #nEvents = min(1000000000000,tree.GetEntries())
-        nEvents = min(10000,tree.GetEntries())
+        nEvents = min(module_settings.event_limit,tree.GetEntries())
         
         self.n_el_per_event = []
         for i in range(0,5):

@@ -156,14 +156,15 @@ def latex_multieff(latex, vnames, vtype, cname, graphs_eff, objects_to_save):
             legend = make_legend(0.3,0.4,0.9,0.2)
             for rname in region_names:
                 gname = 'g_%s_%s_%s_%s'%(vnames[rname], bname, tname, rname)
-                g = graphs_eff[gname]
+                g = graphs_eff[gname].Clone('gClone_%s'%gname)
                 regions[rname].set_style(g)
                 graphs.append(g)
                 legend.AddEntry(g, regions[rname].ROOT_label, 'pl')
             
             image_counter = image_counter+1
             suffix = '&' if image_counter%2==1 else '\\\\'
-            figure_name = plot_multiple_graphs(graphs, legend, objects_to_save, bname, tname, cname, vtype)
+            #figure_name = plot_multiple_graphs(graphs, legend, objects_to_save, bname, tname, cname, vtype)
+            figure_name = plot_multiple_graphs(graphs, legend, [], bname, tname, cname, vtype)
             lines.append('      \\includegraphics[width=0.4\\textwidth]{%s} %s'%(figure_name, suffix))
     lines.append('    \\end{tabular}')
     lines.append('  \\caption{%s}'%caption)
